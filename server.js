@@ -1,6 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const axios = require("axios");
+const HttpsProxyAgent = require("https-proxy-agent");
 
 const app = express();
 app.use(express.json());
@@ -19,18 +20,12 @@ app.post("/webhook", async (req, res) => {
     // ASP Webhook URL (obtained from environment variable)
     const aspWebhookUrl = `${process.env.ASP_WEBHOOK_URL}?identifier=${click_id}&supplier_id=89`;
 
-    // Settings for sending requests via Fixie Proxy
-    const proxy = {
-      host: "velodrome.usefixie.com",
-      port: 80,
-      auth: {
-        username: process.env.FIXIE_USERNAME,
-        password: process.env.FIXIE_PASSWORD,
-      },
-    };
+    // Fixie Proxy settings
+    const proxyUrl = process.env.FIXIE_URL;
+    const agent = new HttpsProxyAgent(proxyUrl);
 
     // Send a request to ASP
-    const response = await axios.get(aspWebhookUrl, { proxy });
+    const response = await axios.get(aspWebhookUrl, { httpsAgent: agent });
 
     console.log("Webhook sent successfully:", response.data);
     res.status(200).json({ message: "Webhook sent successfully" });
