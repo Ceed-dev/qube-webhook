@@ -1,0 +1,19 @@
+# Node.js related unnecessary files
+node_modules/
+npm-debug.log
+yarn.lock
+package-lock.json
+
+# Environment variables file
+.env
+
+# Log files
+*.log
+logs/
+debug.log
+
+# Unnecessary files from the OS and editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
