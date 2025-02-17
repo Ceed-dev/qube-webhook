@@ -11,6 +11,12 @@ const PORT = process.env.PORT || 3000;
 // Webhook endpoint to forward the request to an external server
 app.post("/webhook", async (req, res) => {
   try {
+    // API Key Authentication
+    const apiKey = req.headers["x-api-key"];
+    if (!apiKey || apiKey !== process.env.WEBHOOK_API_KEY) {
+      return res.status(403).json({ error: "Forbidden: Invalid API Key" });
+    }
+
     const { fullUrl, method = "GET", data = {} } = req.body;
 
     // Validate fullUrl
