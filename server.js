@@ -8,27 +8,34 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
 
-// Endpoints to receive webhook
+// Webhook endpoint to forward the request to an external server
 app.post("/webhook", async (req, res) => {
   try {
-    const { click_id } = req.body;
+    const { fullUrl, method = "GET", data = {} } = req.body;
 
-    if (!click_id) {
-      return res.status(400).json({ error: "click_id is required" });
+    // Validate fullUrl
+    if (!fullUrl || typeof fullUrl !== "string" || !fullUrl.startsWith("http")) {
+      return res.status(400).json({ error: "Invalid request. fullUrl is required and must be a valid URL." });
     }
-
-    // ASP Webhook URL (obtained from environment variable)
-    const aspWebhookUrl = `${process.env.ASP_WEBHOOK_URL}?identifier=${click_id}&supplier_id=89`;
 
     // Fixie Proxy settings
     const proxyUrl = process.env.FIXIE_URL;
-    const agent = new HttpsProxyAgent(proxyUrl);
+    const agent = proxyUrl ? new HttpsProxyAgent(proxyUrl) : null;
 
-    // Send a request to ASP
-    const response = await axios.get(aspWebhookUrl, { httpsAgent: agent });
+    // Request options
+    const requestOptions = {
+      method: method.toUpperCase(),
+      url: fullUrl,
+      data: method.toUpperCase() === "POST" ? data : {},
+      httpsAgent: agent,
+      timeout: 5000,
+    };
+
+    // Send request to external server
+    const response = await axios(requestOptions);
 
     console.log("Webhook sent successfully:", response.data);
-    res.status(200).json({ message: "Webhook sent successfully" });
+    res.status(200).json({ message: "Webhook sent successfully", response: response.data });
 
   } catch (error) {
     console.error("Error sending webhook:", error.message);
@@ -36,7 +43,7 @@ app.post("/webhook", async (req, res) => {
   }
 });
 
-// Server Start
+// Start the server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
