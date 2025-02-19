@@ -11,9 +11,12 @@ const PORT = process.env.PORT || 3000;
 // Webhook endpoint to forward the request to an external server
 app.post("/webhook", async (req, res) => {
   try {
+    console.log("🔵 [INFO] Received webhook request");
+
     // API Key Authentication
     const apiKey = req.headers["x-api-key"];
     if (!apiKey || apiKey !== process.env.WEBHOOK_API_KEY) {
+      console.warn("🟠 [WARNING] Unauthorized request - Invalid API Key");
       return res.status(403).json({ error: "Forbidden: Invalid API Key" });
     }
 
@@ -21,8 +24,11 @@ app.post("/webhook", async (req, res) => {
 
     // Validate fullUrl
     if (!fullUrl || typeof fullUrl !== "string" || !fullUrl.startsWith("http")) {
+      console.warn("🟠 [WARNING] Invalid request - Missing or invalid 'fullUrl'");
       return res.status(400).json({ error: "Invalid request. fullUrl is required and must be a valid URL." });
     }
+
+    console.log(`📡 [INFO] Forwarding request to: ${fullUrl} | Method: ${method}`);
 
     // Fixie Proxy settings
     const proxyUrl = process.env.FIXIE_URL;
@@ -40,16 +46,30 @@ app.post("/webhook", async (req, res) => {
     // Send request to external server
     const response = await axios(requestOptions);
 
-    console.log("Webhook sent successfully:", response.data);
-    res.status(200).json({ message: "Webhook sent successfully", response: response.data });
+    console.log(`✅ [SUCCESS] Webhook sent successfully to ${fullUrl}`);
+    console.log("🔍 [DEBUG] Response Data:", response.data);
+
+    res.status(200).json({ 
+      message: "Webhook sent successfully", 
+      response: response.data 
+    });
 
   } catch (error) {
-    console.error("Error sending webhook:", error.message);
-    res.status(500).json({ error: "Failed to send webhook" });
+    console.error("❌ [ERROR] Failed to send webhook");
+    console.error("🛑 [ERROR DETAILS]", error.message);
+    if (error.response) {
+      console.error("🔻 [ERROR RESPONSE DATA]", error.response.data);
+    }
+
+    res.status(500).json({
+      error: "Failed to send webhook",
+      details: error.message,
+      response: error.response?.data || null,
+    });
   }
 });
 
 // Start the server
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 [SERVER] Running on port ${PORT}`);
 });
